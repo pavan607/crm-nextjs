@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 6, "column": 0}, "map": {"version":3,"sources":[],"names":[],"mappings":"","debugId":null}},
+    {"offset": {"line": 66, "column": 0}, "map": {"version":3,"sources":["file:///C:/Users/Administrator/Downloads/crm/app/api/logout/route.ts"],"sourcesContent":["import { NextResponse } from \"next/server\";\r\n\r\nexport async function POST() {\r\n  const response = NextResponse.json({ message: \"Logged out\" });\r\n  response.cookies.set({\r\n    name: \"loggedIn\",\r\n    value: \"\",\r\n    path: \"/\",\r\n    maxAge: 0, // expires immediately\r\n  });\r\n  return response;\r\n}\r\n"],"names":[],"mappings":";;;AAAA;;AAEO,eAAe;IACpB,MAAM,WAAW,gIAAA,CAAA,eAAY,CAAC,IAAI,CAAC;QAAE,SAAS;IAAa;IAC3D,SAAS,OAAO,CAAC,GAAG,CAAC;QACnB,MAAM;QACN,OAAO;QACP,MAAM;QACN,QAAQ;IACV;IACA,OAAO;AACT","debugId":null}}]
+}

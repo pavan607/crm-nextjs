@@ -1,0 +1,3 @@
+{
+  "/api/enquiry/edit/[enquiryId]/route": "app/api/enquiry/edit/[enquiryId]/route.js"
+}

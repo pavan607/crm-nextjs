@@ -1,0 +1,3 @@
+{
+  "/api/fsn/enquiries/[id]/route": "app/api/fsn/enquiries/[id]/route.js"
+}

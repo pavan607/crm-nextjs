@@ -1,0 +1,6 @@
+# Ignore dependencies
+node_modules/
+
+# Ignore uploads and big zips
+public/uploads/
+*.zip

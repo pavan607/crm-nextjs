@@ -1,0 +1,7 @@
+https://nodejs.org/en/download
+
+add path during installation
+
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Bypass -Force (excecute this if running scripts are disabled by the terminal)
+
+npm install

@@ -1,0 +1,19 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/enquiry/list/route": "app/api/enquiry/list/route.js",
+  "/api/fsn/add/route": "app/api/fsn/add/route.js",
+  "/api/fsn/department_dropdown/route": "app/api/fsn/department_dropdown/route.js",
+  "/api/fsn/dropdown/route": "app/api/fsn/dropdown/route.js",
+  "/api/fsn/employee_dropdown/route": "app/api/fsn/employee_dropdown/route.js",
+  "/api/fsn/enquiries/[id]/products/route": "app/api/fsn/enquiries/[id]/products/route.js",
+  "/api/fsn/enquiries/[id]/route": "app/api/fsn/enquiries/[id]/route.js",
+  "/api/fsn/enquiry_dropdown/route": "app/api/fsn/enquiry_dropdown/route.js",
+  "/api/fsn/generate-fsn-num/route": "app/api/fsn/generate-fsn-num/route.js",
+  "/api/fsn/list/route": "app/api/fsn/list/route.js",
+  "/api/fsn/products/route": "app/api/fsn/products/route.js",
+  "/enquiry/list/page": "app/enquiry/list/page.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/fsn/add/page": "app/fsn/add/page.js",
+  "/fsn/list/page": "app/fsn/list/page.js",
+  "/page": "app/page.js"
+}

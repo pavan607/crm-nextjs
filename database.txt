@@ -1,0 +1,210 @@
+use crm;
+CREATE TABLE crm_department (
+    department_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    department_name VARCHAR(255) NOT NULL,
+    department_created_on DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    departmen_modified_on DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+
+CREATE TABLE crm_employee (
+    employee_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    department_id BIGINT,
+    employee_number VARCHAR(255) UNIQUE,
+    employee_first_name VARCHAR(255),
+    employee_last_name VARCHAR(255),
+    employee_short_name VARCHAR(255) UNIQUE,
+    employee_email VARCHAR(255) UNIQUE,
+    employee_dob DATE,
+    employee_contact_number VARCHAR(10) UNIQUE,
+    employee_designation VARCHAR(255),
+    employee_reporting_to VARCHAR(255),
+    employee_digital_signature VARCHAR(255),
+    employee_date_of_reliving DATE,
+    employee_photo VARCHAR(255),
+    employee_created_on DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    employee_modified_on DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (department_id) REFERENCES crm_department(department_id)
+);
+
+
+CREATE TABLE crm_product (
+  product_id INT AUTO_INCREMENT PRIMARY KEY,
+  product_name VARCHAR(255) NOT NULL,
+  product_code VARCHAR(100) NOT NULL,
+  product_short_name VARCHAR(100),
+  product_type VARCHAR(100) NOT NULL,
+  product_model_number VARCHAR(100),
+  product_uom VARCHAR(50),
+  product_created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  product_updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+
+CREATE TABLE crm_enquiry (
+  enquiry_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  enquiry_name VARCHAR(255) NOT NULL,
+  enquiry_contact_name VARCHAR(255),
+  enquiry_type VARCHAR(50),
+  enquiry_source VARCHAR(100),
+  enquiry_assigned_to BIGINT, -- FK to employee_id
+  enquiry_campaign_source VARCHAR(255),
+  enquiry_weighted_revenue DECIMAL(15,2),
+  enquiry_organization_name VARCHAR(255),
+  enquiry_amount DECIMAL(15,2),
+  enquiry_expected_close_date DATE,
+  enquiry_close_date DATE,
+  enquiry_next_step VARCHAR(255),
+  enquiry_sales_stage VARCHAR(100),
+  enquiry_probability INT,
+  enquiry_description TEXT,
+  enquiry_comments TEXT,
+  enquiry_created_on DATETIME DEFAULT CURRENT_TIMESTAMP,
+  enquiry_created_by BIGINT, -- FK to employee_id
+  enquiry_modified_on DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  enquiry_modified_by BIGINT, -- FK to employee_id
+  FOREIGN KEY (enquiry_assigned_to) REFERENCES crm_employee(employee_id),
+  FOREIGN KEY (enquiry_created_by) REFERENCES crm_employee(employee_id),
+  FOREIGN KEY (enquiry_modified_by) REFERENCES crm_employee(employee_id)
+);
+
+
+CREATE TABLE crm_enquiry_attachment (
+  enquiry_attachment_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  enquiry_id BIGINT NOT NULL,
+  enquiry_attachment_file_name VARCHAR(255),
+  enquiry_attachment_file_path VARCHAR(512),
+  enquiry_attachment_uploaded_on DATETIME DEFAULT CURRENT_TIMESTAMP,
+  enquiry_attachment_uploaded_by BIGINT,
+  FOREIGN KEY (enquiry_id) REFERENCES crm_enquiry(enquiry_id) ON DELETE CASCADE,
+  FOREIGN KEY (enquiry_attachment_uploaded_by) REFERENCES crm_employee(employee_id)
+);
+
+
+
+CREATE TABLE crm_enquiry_comment (
+  enquiry_comment_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  enquiry_id BIGINT NOT NULL,
+  enquiry_comment_text TEXT NOT NULL,
+  enquiry_comment_commented_on DATETIME DEFAULT CURRENT_TIMESTAMP,
+  enquiry_comment_commented_by BIGINT,
+  FOREIGN KEY (enquiry_id) REFERENCES crm_enquiry(enquiry_id) ON DELETE CASCADE,
+  FOREIGN KEY (enquiry_comment_commented_by) REFERENCES crm_employee(employee_id)
+);
+
+CREATE TABLE crm_enquiry_product (
+  enquiry_product_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  enquiry_id BIGINT NOT NULL ,
+  product_id INT NOT NULL,
+  enquiry_product_quantity INT NOT NULL DEFAULT 1,
+  enquiry_product_price DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+  enquiry_product_created_on DATETIME DEFAULT CURRENT_TIMESTAMP,
+  enquiry_product_modified_on DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (enquiry_id) REFERENCES crm_enquiry(enquiry_id) ON DELETE CASCADE,
+  FOREIGN KEY (product_id) REFERENCES crm_product(product_id) ON DELETE CASCADE
+);
+
+ALTER TABLE crm_enquiry 
+ADD COLUMN enquiry_number VARCHAR(20);
+
+
+DELIMITER $$
+
+CREATE TRIGGER tr_auto_generate_enquiry_number
+BEFORE INSERT ON crm_enquiry
+FOR EACH ROW
+BEGIN
+    DECLARE next_seq INT DEFAULT 1;
+    DECLARE current_year INT;
+
+    -- Get current year from NEW.created_on or NOW()
+    SET current_year = YEAR(COALESCE(NEW.enquiry_created_on, NOW()));
+
+    -- Get max sequence for current year and increment it
+    SELECT COALESCE(
+        MAX(
+            CAST(
+                SUBSTRING_INDEX(SUBSTRING_INDEX(enquiry_number, '-', 1), 'E', -1
+            ) AS UNSIGNED)
+        ), 0
+    ) + 1
+    INTO next_seq
+    FROM crm_enquiry
+    WHERE YEAR(enquiry_created_on) = current_year
+      AND enquiry_number LIKE CONCAT('E%', '-', current_year);
+
+    -- Assign the generated number to the NEW row
+    SET NEW.enquiry_number = CONCAT('E', next_seq, '-', current_year);
+END$$
+
+DELIMITER ;
+
+
+
+INSERT INTO crm_department (department_name) VALUES 
+('Software Development'),
+('HR'),
+('Marketing'),
+('Sales');
+
+
+CREATE TABLE crm_fsn (
+    fsn_id INT PRIMARY KEY AUTO_INCREMENT,
+    enquiry_id BIGINT NOT NULL,
+    enquiry_date DATE,
+    fsn_num VARCHAR(50) UNIQUE NOT NULL,
+    fsn_date DATE NOT NULL,
+    fsn_organization_name VARCHAR(255),
+    fsn_contact_name VARCHAR(255),
+    fsn_target_date DATE,
+    fsn_required_delivery_schedules TEXT,
+    fsn_test_procedures TEXT,
+    fsn_status ENUM('draft', 'submitted', 'approved', 'rejected') DEFAULT 'draft',
+    fsn_created_on DATETIME DEFAULT CURRENT_TIMESTAMP,
+    fsn_modified_on DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    fsn_created_by BIGINT,
+    fsn_modified_by BIGINT,
+
+    -- Foreign key constraints
+    FOREIGN KEY (enquiry_id) REFERENCES crm_enquiry(enquiry_id),
+    FOREIGN KEY (fsn_created_by) REFERENCES crm_employee(employee_id),
+    FOREIGN KEY (fsn_modified_by) REFERENCES crm_employee(employee_id),
+
+   INDEX idx_enquiry_id (enquiry_id),
+   INDEX idx_fsn_num (fsn_num)
+);
+
+CREATE TABLE crm_fsn_product (
+    fsn_product_id INT PRIMARY KEY AUTO_INCREMENT,
+    fsn_id INT NOT NULL,
+    product_id INT NOT NULL,
+    fsn_product_qty INT NOT NULL DEFAULT 0,
+    fsn_product_feasibility ENUM('feasible', 'feasible_with_deviations', 'regretted') DEFAULT 'feasible',
+    fsn_product_bom_cost DECIMAL(15,2) DEFAULT 0,
+    fsn_product_comments TEXT,
+    fsn_product_created_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (fsn_id) REFERENCES crm_fsn(fsn_id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES crm_product(product_id) ON DELETE CASCADE,
+    INDEX idx_fsn_id (fsn_id),
+    INDEX idx_product_id (product_id)
+);
+
+CREATE TABLE crm_fsn_attachment (
+    fsn_attachment_id INT PRIMARY KEY AUTO_INCREMENT,
+    fsn_id INT NOT NULL,
+    fsn_product_id INT,
+    fsn_attachment_file_name VARCHAR(255) NOT NULL,
+    fsn_attachment_file_size BIGINT,
+    fsn_attachment_file_type VARCHAR(100),
+    fsn_attachment_file_url VARCHAR(500),
+    fsn_attachment_file_path VARCHAR(500),
+    fsn_attachment_uploaded_by INT,
+    fsn_attachment_uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (fsn_id) REFERENCES crm_fsn(fsn_id) ON DELETE CASCADE,
+    FOREIGN KEY (fsn_product_id) REFERENCES crm_fsn_product(fsn_product_id) ON DELETE CASCADE,
+    INDEX idx_fsn_id (fsn_id),
+    INDEX idx_fsn_product_id (fsn_product_id)
+);
+
