@@ -28,7 +28,7 @@ const menuItems: MenuItem[] = [
     label: "Transactions",
     subItems: [
       { href: "/enquiry/list", label: "Enquiry" },
-      { href: "/fsn/add", label: "FSN" },
+      { href: "/fsn/list", label: "FSN" },
       { href: "/send-email", label: "Email" },
       { href: "/payments", label: "Payments" },
     ],

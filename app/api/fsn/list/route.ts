@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     if (search) {
       whereConditions.push(`(
         cf.fsn_num LIKE ? OR 
-        ce.crm_enquiry_number LIKE ? OR 
+        ce.enquiry_number LIKE ? OR 
         cf.fsn_organization_name LIKE ? OR 
         cf.fsn_contact_name LIKE ?
       )`);
@@ -54,24 +54,24 @@ export async function GET(request: NextRequest) {
       ? `WHERE ${whereConditions.join(' AND ')}`
       : '';
     
-    // Get total count
+    // Get total count - Fixed table join
     const countQuery = `
       SELECT COUNT(*) as total
       FROM crm_fsn cf
-      LEFT JOIN crmtf_enquiry ce ON cf.fsn_enquiry_id = ce.crm_enquiry_id
+      LEFT JOIN crm_enquiry ce ON cf.enquiry_id = ce.enquiry_id
       ${whereClause}
     `;
     
     const [countResult] = await db.query(countQuery, queryParams) as any;
     const total = countResult[0].total;
     
-    // Get records with pagination
+    // Get records with pagination - Fixed field names
     const recordsQuery = `
       SELECT 
         cf.fsn_id,
-        cf.fsn_enquiry_id,
-        ce.crm_enquiry_number,
-        cf.fsn_enquiry_date,
+        cf.enquiry_id as fsn_enquiry_id,
+        ce.enquiry_number as crm_enquiry_number,
+        cf.enquiry_date as fsn_enquiry_date,
         cf.fsn_num,
         cf.fsn_date,
         cf.fsn_organization_name,
@@ -79,8 +79,8 @@ export async function GET(request: NextRequest) {
         cf.fsn_target_date,
         cf.fsn_required_delivery_schedules,
         cf.fsn_test_procedures,
-        cf.created_on,
-        cf.modified_on,
+        cf.fsn_created_on as created_on,
+        cf.fsn_modified_on as modified_on,
         cf.fsn_status as status,
         (
           SELECT COUNT(*) 
@@ -88,9 +88,9 @@ export async function GET(request: NextRequest) {
           WHERE cfp.fsn_id = cf.fsn_id
         ) as products_count
       FROM crm_fsn cf
-      LEFT JOIN crmtf_enquiry ce ON cf.fsn_enquiry_id = ce.crm_enquiry_id
+      LEFT JOIN crm_enquiry ce ON cf.enquiry_id = ce.enquiry_id
       ${whereClause}
-      ORDER BY cf.created_on DESC
+      ORDER BY cf.fsn_created_on DESC
       LIMIT ? OFFSET ?
     `;
     
@@ -135,8 +135,9 @@ export async function DELETE(request: NextRequest) {
     const placeholders = ids.map(() => '?').join(',');
     
     // Delete related attachments and products first (CASCADE should handle this but being explicit)
+    // Fixed table name: crm_fsn_attachment (not crm_fsn_attachments)
     await db.query(
-      `DELETE FROM crm_fsn_attachments WHERE fsn_id IN (${placeholders})`,
+      `DELETE FROM crm_fsn_attachment WHERE fsn_id IN (${placeholders})`,
       ids
     );
     

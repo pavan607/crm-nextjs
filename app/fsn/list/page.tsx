@@ -5,6 +5,7 @@ import { Search, Filter, Eye, Edit, Trash2, Plus, Download, Calendar, Building, 
 
 interface FSNRecord {
   fsn_id: number;
+  fsn_enquiry_id: number;
   crm_enquiry_number: string;
   fsn_enquiry_date: string;
   fsn_num: string;
@@ -14,8 +15,8 @@ interface FSNRecord {
   fsn_target_date: string;
   fsn_required_delivery_schedules: string;
   fsn_test_procedures: string;
-  created_at: string;
-  updated_at: string;
+  created_on: string;  // Changed from created_at
+  modified_on: string; // Changed from updated_at
   status: 'draft' | 'submitted' | 'approved' | 'rejected';
   products_count: number;
 }
@@ -59,9 +60,8 @@ const FSNListPage = () => {
       });
 
       const response = await fetch(`/api/fsn/list?${params}`);
-const result = await response.json();
+      const result = await response.json();
 
-      
       if (result.success) {
         setFsnRecords(result.data);
         setTotalRecords(result.pagination.total);
@@ -141,6 +141,30 @@ const result = await response.json();
     }
   };
 
+  // Fixed individual record deletion
+  const handleDeleteRecord = async (recordId: number) => {
+    if (!confirm('Delete this record?')) return;
+
+    try {
+      const response = await fetch('/api/fsn/list', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: [recordId] })
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        fetchFSNRecords();
+        alert('Record deleted successfully');
+      } else {
+        alert('Error deleting record');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error deleting record');
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const config = {
       draft: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Draft' },
@@ -157,6 +181,7 @@ const result = await response.json();
   };
 
   const formatDate = (dateString: string) => {
+    if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -234,12 +259,14 @@ const result = await response.json();
               type="date"
               value={filters.dateFrom}
               onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
+              placeholder="From Date"
               className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
             <input
               type="date"
               value={filters.dateTo}
               onChange={(e) => handleFilterChange('dateTo', e.target.value)}
+              placeholder="To Date"
               className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
             <input
@@ -320,18 +347,18 @@ const result = await response.json();
                   <td className="px-4 py-4">
                     <div className="text-sm">
                       <div className="font-medium text-gray-900">{record.fsn_num}</div>
-                      <div className="text-gray-500">Enquiry: {record.crm_enquiry_number}</div>
+                      <div className="text-gray-500">Enquiry: {record.crm_enquiry_number || 'N/A'}</div>
                     </div>
                   </td>
                   <td className="px-4 py-4">
                     <div className="text-sm">
                       <div className="font-medium text-gray-900 flex items-center gap-1">
                         <Building className="w-4 h-4 text-gray-400" />
-                        {record.fsn_organization_name}
+                        {record.fsn_organization_name || 'N/A'}
                       </div>
                       <div className="text-gray-500 flex items-center gap-1">
                         <User className="w-4 h-4 text-gray-400" />
-                        {record.fsn_contact_name}
+                        {record.fsn_contact_name || 'N/A'}
                       </div>
                     </div>
                   </td>
@@ -353,19 +380,24 @@ const result = await response.json();
                   </td>
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-2">
-                      <button className="text-blue-600 hover:text-blue-800 p-1 hover:bg-blue-50 rounded">
+                      <button 
+                        onClick={() => window.location.href = `/fsn/view/${record.fsn_id}`}
+                        className="text-blue-600 hover:text-blue-800 p-1 hover:bg-blue-50 rounded"
+                        title="View FSN"
+                      >
                         <Eye className="w-4 h-4" />
                       </button>
-                      <button className="text-green-600 hover:text-green-800 p-1 hover:bg-green-50 rounded">
+                      <button 
+                        onClick={() => window.location.href = `/fsn/edit/${record.fsn_id}`}
+                        className="text-green-600 hover:text-green-800 p-1 hover:bg-green-50 rounded"
+                        title="Edit FSN"
+                      >
                         <Edit className="w-4 h-4" />
                       </button>
                       <button 
-                        onClick={() => {
-                          if (confirm('Delete this record?')) {
-                            handleDeleteSelected();
-                          }
-                        }}
+                        onClick={() => handleDeleteRecord(record.fsn_id)}
                         className="text-red-600 hover:text-red-800 p-1 hover:bg-red-50 rounded"
+                        title="Delete FSN"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -380,7 +412,7 @@ const result = await response.json();
         {fsnRecords.length === 0 && (
           <div className="text-center py-12">
             <div className="text-gray-500 text-lg">No FSN records found</div>
-            <p className="text-gray-400 mt-2">Try adjusting your search criteria.</p>
+            <p className="text-gray-400 mt-2">Try adjusting your search criteria or create a new FSN.</p>
           </div>
         )}
       </div>
@@ -393,27 +425,37 @@ const result = await response.json();
             <button
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="px-3 py-2 border border-gray-300 rounded-md disabled:opacity-50 hover:bg-gray-50"
+              className="px-3 py-2 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
             >
               Previous
             </button>
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => i + 1).map(page => (
-              <button
-                key={page}
-                onClick={() => setCurrentPage(page)}
-                className={`px-3 py-2 border rounded-md ${
-                  currentPage === page
-                    ? 'bg-blue-600 text-white border-blue-600'
-                    : 'border-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                {page}
-              </button>
-            ))}
+            
+            {/* Show page numbers */}
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              const startPage = Math.max(1, currentPage - 2);
+              const pageNum = startPage + i;
+              
+              if (pageNum > totalPages) return null;
+              
+              return (
+                <button
+                  key={pageNum}
+                  onClick={() => setCurrentPage(pageNum)}
+                  className={`px-3 py-2 border rounded-md ${
+                    currentPage === pageNum
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              );
+            })}
+            
             <button
               onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className="px-3 py-2 border border-gray-300 rounded-md disabled:opacity-50 hover:bg-gray-50"
+              className="px-3 py-2 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
             >
               Next
             </button>
