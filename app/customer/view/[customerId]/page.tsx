@@ -46,7 +46,7 @@ export default function ViewCustomer({ params }: { params: Promise<{ customerId:
   if (!customer) return <p>Customer not found</p>;
 
   return (
-    <div className="max-w-3xl mx-auto p-6 bg-white rounded shadow dark:bg-gray-900">
+    <div>
       <h1 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">
         {customer.customer_name}
       </h1>
