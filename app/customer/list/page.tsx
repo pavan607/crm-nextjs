@@ -58,7 +58,7 @@ export default function CustomerList() {
     if (!confirmDelete) return;
 
     try {
-      const res = await fetch(`/api/customer/${customer.customer_id}`, {
+      const res = await fetch(`/api/customer/edit/${customer.customer_id}`, {
         method: "DELETE",
       });
 
@@ -209,7 +209,7 @@ export default function CustomerList() {
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Customer List</h1>
         <a
-          href="/customer"
+          href="/customer/add"
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
         >
           + Add

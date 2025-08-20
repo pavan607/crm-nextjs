@@ -1,24 +1,12 @@
-'use client';
+// app/enquiry/view/[enquiryId]/page.tsx
+import React from 'react';
 
-import React, { useEffect, useState } from 'react';
-
-type Attachment = {
-  file_name: string;
-  file_path: string;
-};
-
-type Comment = {
-  comment_text: string;
-  commented_on: string;
-  commented_by_name: string;
-};
-
-type Product = {
-  product_name: string;
-};
+type Attachment = { file_name: string; file_path: string };
+type Comment = { comment_text: string; commented_on: string; commented_by_name: string };
+type Product = { product_name: string };
 
 type Lead = {
-  leadId: number;
+  enquiryId: number;
   opportunityName: string;
   contactName?: string;
   type?: string;
@@ -38,7 +26,6 @@ type Lead = {
   products?: Product[];
 };
 
-// Define the API response type (matches the API structure)
 type ApiLead = {
   crm_enquiry_id: number;
   crm_opportunity_name: string;
@@ -61,20 +48,17 @@ type ApiLead = {
 };
 
 interface Props {
-  params: Promise<{ leadId: string }>;
+  params: { enquiryId: string };
 }
 
-export default function LeadDetailPage({ params }: Props) {
-  const { leadId } = React.use(params);
-
-  const [lead, setLead] = useState<Lead | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Use ApiLead type here
-  function mapLead(data: ApiLead): Lead {
+// Server-side data fetch
+async function getLead(enquiryId: string): Promise<Lead | null> {
+  try {
+    const res = await fetch(`http://localhost:3000/api/enquiry/view/${enquiryId}`, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const data: ApiLead = await res.json();
     return {
-      leadId: data.crm_enquiry_id,
+      enquiryId: data.crm_enquiry_id,
       opportunityName: data.crm_opportunity_name,
       contactName: data.crm_contact_name,
       type: data.crm_type,
@@ -93,33 +77,20 @@ export default function LeadDetailPage({ params }: Props) {
       comments: data.comments,
       products: data.products,
     };
+  } catch (err) {
+    console.error('Failed to fetch lead:', err);
+    return null;
   }
+}
 
-  useEffect(() => {
-    async function fetchLead() {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch(`/api/leads/${leadId}`);
-        if (!res.ok) throw new Error('Lead not found');
-        const data: ApiLead = await res.json();
-        setLead(mapLead(data));
-      } catch (err) {
-        setError((err as Error).message || 'Failed to load lead');
-        setLead(null);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchLead();
-  }, [leadId]);
+
+export default async function LeadDetailPage({ params }: Props) {
+  const lead = await getLead(params.enquiryId);
 
   const formatDate = (dateStr?: string) =>
     dateStr ? new Date(dateStr).toLocaleString() : '—';
 
-  if (loading) return <p>Loading...</p>;
-  if (error) return <p className="text-red-600">Error: {error}</p>;
-  if (!lead) return <p>Lead not found.</p>;
+  if (!lead) return <p className="text-red-600 p-4">Lead not found.</p>;
 
   return (
     <div className="p-4 max-w-3xl mx-auto">
@@ -138,9 +109,10 @@ export default function LeadDetailPage({ params }: Props) {
       <p><strong>Probability:</strong> {lead.probability ?? '—'}</p>
       <p><strong>Description:</strong> {lead.description || '—'}</p>
 
+      {/* Comments */}
       <section className="mt-6">
         <h2 className="font-semibold mb-2">Comments:</h2>
-        {lead.comments && lead.comments.length > 0 ? (
+        {lead.comments?.length ? (
           <ul className="list-disc ml-5">
             {lead.comments.map((c, i) => (
               <li key={i}>
@@ -149,27 +121,25 @@ export default function LeadDetailPage({ params }: Props) {
               </li>
             ))}
           </ul>
-        ) : (
-          <p>—</p>
-        )}
+        ) : <p>—</p>}
       </section>
 
+      {/* Products */}
       <section className="mt-6">
         <h2 className="font-semibold mb-2">Products:</h2>
-        {lead.products && lead.products.length > 0 ? (
+        {lead.products?.length ? (
           <ul className="list-disc ml-5">
             {lead.products.map((p, i) => (
               <li key={i}>{p.product_name}</li>
             ))}
           </ul>
-        ) : (
-          <p>—</p>
-        )}
+        ) : <p>—</p>}
       </section>
 
+      {/* Attachments */}
       <section className="mt-6">
         <h2 className="font-semibold mb-2">Attachments:</h2>
-        {lead.attachments && lead.attachments.length > 0 ? (
+        {lead.attachments?.length ? (
           <ul className="list-disc ml-5">
             {lead.attachments.map((a, i) => (
               <li key={i}>
@@ -184,9 +154,7 @@ export default function LeadDetailPage({ params }: Props) {
               </li>
             ))}
           </ul>
-        ) : (
-          <p>—</p>
-        )}
+        ) : <p>—</p>}
       </section>
     </div>
   );

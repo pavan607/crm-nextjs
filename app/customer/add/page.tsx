@@ -49,7 +49,7 @@ export default function CustomerFormPage() {
     setError("");
 
     try {
-      const res = await fetch("/api/customer/register", {
+      const res = await fetch("/api/customer/add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
@@ -63,7 +63,7 @@ export default function CustomerFormPage() {
       setSuccess("Customer registered successfully!");
       setForm(initialForm);
       setTimeout(() => {
-        window.location.href = "/customer-list";
+        window.location.href = "/customer/list";
       }, 1200);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Unexpected error occurred.");

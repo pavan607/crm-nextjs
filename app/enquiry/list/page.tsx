@@ -494,7 +494,7 @@ export default function LeadListPage() {
         striped
         responsive
         pointerOnHover
-        onRowClicked={row => router.push(`/leads/${row.enquiryId}`)}
+        onRowClicked={row => router.push(`/enquiry/view/${row.enquiryId}`)}
         // Note: defaultSortFieldId expects a numeric id of the column, not a string field
         // So either assign an id prop to your column or use defaultSortField="enquiryNumber"
         // defaultSortField="enquiryNumber"

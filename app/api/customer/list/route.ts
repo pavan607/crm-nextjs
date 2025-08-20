@@ -3,7 +3,7 @@ import pool from "../../../lib/db"; // Adjust path based on your project structu
 
 export async function GET() {
   try {
-    const [rows] = await pool.query("SELECT * FROM crmtf_customer");
+    const [rows] = await pool.query("SELECT * FROM crm_customer");
     return NextResponse.json({ customers: rows });
   } catch (error) {
     console.error("DB Error:", error);

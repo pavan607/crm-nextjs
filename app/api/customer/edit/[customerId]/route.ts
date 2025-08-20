@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import pool from "../../../lib/db";
+import pool from "../../../../lib/db";
 import type { RowDataPacket, FieldPacket, OkPacket } from "mysql2";
 
 type Customer = {
@@ -17,14 +17,14 @@ type Customer = {
 
 export async function GET(
   req: Request,
-  { params }: { params: Promise<{ customer_id: string }> }
+  { params }: { params: Promise<{ customerId: string }> }
 ) {
-  const { customer_id } = await params;
+  const { customerId } = await params;
 
   try {
     const [rows]: [Customer[] & RowDataPacket[], FieldPacket[]] = await pool.query(
       "CALL GetCustomerById(?)",
-      [customer_id]
+      [customerId]
     );
 
     const customerData = rows[0]?.[0];
@@ -42,9 +42,9 @@ export async function GET(
 
 export async function PUT(
   req: Request,
-  { params }: { params: Promise<{ customer_id: string }> }
+  { params }: { params: Promise<{ customerId: string }> }
 ) {
-  const { customer_id } = await params;
+  const { customerId } = await params;
 
   try {
     const body = await req.json();
@@ -63,7 +63,7 @@ export async function PUT(
     const [result]: [OkPacket, FieldPacket[]] = await pool.query(
       "CALL UpdateCustomerById(?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [
-        customer_id,
+        customerId,
         customer_name,
         customer_contact_person,
         customer_address,
@@ -88,14 +88,14 @@ export async function PUT(
 
 export async function DELETE(
   req: Request,
-  { params }: { params: Promise<{ customer_id: string }> }
+  { params }: { params: Promise<{ customerId: string }> }
 ) {
-  const { customer_id } = await params;
+  const { customerId } = await params;
 
   try {
     const [result]: [OkPacket, FieldPacket[]] = await pool.query(
       "CALL DeleteCustomerById(?)",
-      [customer_id]
+      [customerId]
     );
 
     if (result.affectedRows === 0) {
