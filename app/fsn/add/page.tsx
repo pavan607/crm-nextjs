@@ -92,6 +92,9 @@ const FSNPage = () => {
   const [departments, setDepartments] = useState<{ department_id: number; department_name: string }[]>([]);
   const [employees, setEmployees] = useState<{ employee_id: number; employee_first_name: string; employee_last_name: string }[]>([]);
 
+  // New state for confirmation dialog
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+
   const feasibilityOptions = [
     { value: 'feasible' as const, label: 'Feasible', color: 'bg-green-500' },
     { value: 'feasible_with_deviations' as const, label: 'Feasible with Deviations', color: 'bg-yellow-500' },
@@ -405,24 +408,33 @@ const FSNPage = () => {
     }) : null);
   };
 
-  const handleSubmitFSN = async () => {
+  // Show confirmation dialog when Save FSN is clicked
+  const handleSaveFSNClick = () => {
+    // Validate required fields first
+    if (!fsnData.enquiry_number) {
+      alert('Please select an enquiry number');
+      return;
+    }
+
+    if (!fsnData.fsn_num) {
+      alert('FSN number is missing');
+      return;
+    }
+
+    if (products.length === 0) {
+      alert('Please add at least one product');
+      return;
+    }
+
+    // Show confirmation dialog
+    setShowConfirmDialog(true);
+  };
+
+  // Handle FSN submission based on user choice
+  const handleSubmitFSN = async (sendToTechnical: boolean) => {
     try {
       setLoading(true);
-      
-      if (!fsnData.enquiry_number) {
-        alert('Please select an enquiry number');
-        return;
-      }
-
-      if (!fsnData.fsn_num) {
-        alert('FSN number is missing');
-        return;
-      }
-
-      if (products.length === 0) {
-        alert('Please add at least one product');
-        return;
-      }
+      setShowConfirmDialog(false);
 
       const payload = {
         enquiry_number: fsnData.enquiry_number, 
@@ -434,6 +446,7 @@ const FSNPage = () => {
         fsn_target_date: fsnData.fsn_target_date,
         fsn_required_delivery_schedules: fsnData.fsn_required_delivery_schedules,
         fsn_test_procedures: fsnData.fsn_test_procedures,
+        send_to_technical: sendToTechnical, // New field
         products: products.map(p => ({
           crmtf_product_id: p.crmtf_product_id,
           fsn_product_qty: p.fsn_product_qty,
@@ -456,7 +469,11 @@ const FSNPage = () => {
 
       if (response.ok) {
         const result = await response.json();
-        alert('FSN saved successfully!');
+        const message = sendToTechnical 
+          ? 'FSN submitted to technical department successfully!'
+          : 'FSN saved as draft successfully!';
+        
+        alert(message);
         console.log('FSN created with ID:', result.fsnId);
         
         // Client-side navigation
@@ -467,7 +484,8 @@ const FSNPage = () => {
         const error = await response.json();
         throw new Error(error.error || 'Failed to save FSN');
       }
-    } catch {
+    } catch (error) {
+      console.error('FSN submission failed:', error);
       alert('Failed to create FSN');
     } finally {
       setLoading(false);
@@ -650,7 +668,7 @@ const FSNPage = () => {
         <div className="flex justify-center gap-2 pt-6">
           <button
             type="button"
-            onClick={handleSubmitFSN}
+            onClick={handleSaveFSNClick}
             disabled={loading || !fsnData.enquiry_number}
             className="bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700 transition text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -669,6 +687,45 @@ const FSNPage = () => {
           </button>
         </div>
       </div>
+
+      {/* Confirmation Dialog */}
+      {showConfirmDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md m-4">
+            <div className="text-center">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                Do you want to send it to Technical?
+              </h3>
+              <p className="text-sm text-gray-600 mb-6">
+                Choose "Yes" to submit to R&D department or "No" to save as draft in Marketing.
+              </p>
+              <div className="flex justify-center gap-4">
+                <button
+                  onClick={() => handleSubmitFSN(true)}
+                  disabled={loading}
+                  className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? 'Submitting...' : 'Yes'}
+                </button>
+                <button
+                  onClick={() => handleSubmitFSN(false)}
+                  disabled={loading}
+                  className="bg-gray-600 text-white px-6 py-2 rounded-md hover:bg-gray-700 transition text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? 'Saving...' : 'No'}
+                </button>
+                <button
+                  onClick={() => setShowConfirmDialog(false)}
+                  disabled={loading}
+                  className="bg-red-500 text-white px-6 py-2 rounded-md hover:bg-red-600 transition text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isEditModalOpen && editingProduct && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

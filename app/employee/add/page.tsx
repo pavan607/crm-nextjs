@@ -12,7 +12,7 @@ const departmentDesignations: Record<number, string[]> = {
   1: ["Software Engineer", "Tester", "Developer"],
   2: ["Research Analyst", "Lab Technician", "Project Manager"],
   3: ["Accountant", "Financial Analyst", "Auditor"],
-  9: ["Layout Engineer","Senior RF Engineer","Senior Software Engineer"]
+  5: ["R&D","Software Engineer","Senior Software Engineer","Layout Engineer","Project Manager","Director"],
 };
 
 export default function EmployeeRegister() {

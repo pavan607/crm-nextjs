@@ -13,7 +13,7 @@ export async function GET() {
         enquiry_contact_name as crm_contact_name,
         enquiry_created_on as created_on
       FROM crm_enquiry 
-      ORDER BY enquiry_created_on DESC
+      ORDER BY enquiry_created_on ASC
     `);
 
     return NextResponse.json(rows);

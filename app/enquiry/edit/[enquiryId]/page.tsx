@@ -514,7 +514,7 @@ useEffect(() => {
   try {
     // Always fetch fresh data with better error handling
     const [productsRes, employeesRes] = await Promise.all([
-      fetch('/api/enquiry/product_dropdown').catch(err => {
+      fetch('/api/enquiry/product_dropdown/edit_product_dropdown').catch(err => {
         console.error('Product API error:', err);
         throw new Error('Failed to fetch products');
       }),

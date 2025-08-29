@@ -1,6 +1,7 @@
 // app/api/enquiry/product_dropdown/route.ts
+
 import { NextResponse } from 'next/server';
-import pool from '../../../lib/db'; // Use consistent pool import
+import pool from '../../../../lib/db';
 import { RowDataPacket } from 'mysql2';
 
 export async function GET() {
@@ -14,12 +15,12 @@ export async function GET() {
       console.log('📋 Executing query...');
       const [rows] = await connection.execute<RowDataPacket[]>(`
         SELECT 
-          product_id,
-          product_name,
-          product_code,
-          product_type,
-          product_model_number,
-          product_uom
+          product_id as crmtf_product_id,
+          product_name as crmtf_product_name,
+          product_code as crmtf_product_code,
+          product_type as crmtf_product_type,
+          product_model_number as crmtf_product_model_number,
+          product_uom as crmtf_product_uom
         FROM crm_product 
         ORDER BY product_name ASC
       `);

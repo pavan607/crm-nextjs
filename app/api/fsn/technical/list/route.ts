@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import db from '../../../lib/db'; // MySQL connection
+import db from '../../../../lib/db'; // MySQL connection
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
     const dateFrom = searchParams.get('dateFrom') || '';
     const dateTo = searchParams.get('dateTo') || '';
     const organization = searchParams.get('organization') || '';
+    const flagStatus = searchParams.get('flagStatus') || '';
     
     const offset = (page - 1) * limit;
     
@@ -20,8 +21,8 @@ export async function GET(request: NextRequest) {
     let whereConditions = [];
     let queryParams: any[] = [];
     
-    // Add condition to exclude fsn_flag_status 1 and 2
-    whereConditions.push(`(cf.fsn_flag_status IS NULL OR cf.fsn_flag_status NOT IN (1, 2))`);
+    // Show only records with fsn_flag_status 1 or 2
+    whereConditions.push(`cf.fsn_flag_status IN (1, 2)`);
     
     if (search) {
       whereConditions.push(`(
@@ -36,6 +37,11 @@ export async function GET(request: NextRequest) {
     if (status) {
       whereConditions.push(`cf.fsn_status = ?`);
       queryParams.push(status);
+    }
+    
+    if (flagStatus) {
+      whereConditions.push(`cf.fsn_flag_status = ?`);
+      queryParams.push(parseInt(flagStatus));
     }
     
     if (dateFrom) {
@@ -57,7 +63,7 @@ export async function GET(request: NextRequest) {
       ? `WHERE ${whereConditions.join(' AND ')}`
       : '';
     
-    // Get total count - Fixed table join
+    // Get total count
     const countQuery = `
       SELECT COUNT(*) as total
       FROM crm_fsn cf
@@ -68,7 +74,7 @@ export async function GET(request: NextRequest) {
     const [countResult] = await db.query(countQuery, queryParams) as any;
     const total = countResult[0].total;
     
-    // Get records with pagination - Fixed field names
+    // Get records with pagination - Include fsn_flag_status in SELECT
     const recordsQuery = `
       SELECT 
         cf.fsn_id,
@@ -138,22 +144,7 @@ export async function DELETE(request: NextRequest) {
     // Create placeholders for IN clause
     const placeholders = ids.map(() => '?').join(',');
     
-    // Check if any of the records have fsn_flag_status 1 or 2 (shouldn't be deletable)
-    const checkQuery = `
-      SELECT fsn_id FROM crm_fsn 
-      WHERE fsn_id IN (${placeholders}) AND fsn_flag_status IN (1, 2)
-    `;
-    const [flaggedRecords] = await db.query(checkQuery, ids) as any;
-    
-    if (flaggedRecords.length > 0) {
-      return NextResponse.json(
-        { success: false, error: 'Cannot delete flagged records' },
-        { status: 400 }
-      );
-    }
-    
-    // Delete related attachments and products first (CASCADE should handle this but being explicit)
-    // Fixed table name: crm_fsn_attachment (not crm_fsn_attachments)
+    // Delete related attachments and products first
     await db.query(
       `DELETE FROM crm_fsn_attachment WHERE fsn_id IN (${placeholders})`,
       ids

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, Filter, Eye, Edit, Trash2, Plus, Download, Calendar, Building, User, Package } from 'lucide-react';
+import { Search, Filter, Eye, Edit, Trash2, Plus, Download, Calendar, Building, User, Package, Flag } from 'lucide-react';
 
 interface FSNRecord {
   fsn_id: number;
@@ -15,10 +15,10 @@ interface FSNRecord {
   fsn_target_date: string;
   fsn_required_delivery_schedules: string;
   fsn_test_procedures: string;
-  created_on: string;  // Changed from created_at
-  modified_on: string; // Changed from updated_at
+  created_on: string;
+  modified_on: string;
   status: 'draft' | 'submitted' | 'approved' | 'rejected';
-  fsn_flag_status: number | null; // Added flag status field
+  fsn_flag_status: number | null;
   products_count: number;
 }
 
@@ -27,6 +27,7 @@ interface FilterOptions {
   dateFrom: string;
   dateTo: string;
   organization: string;
+  flagStatus: string; // Added flag status filter
 }
 
 const FSNListPage = () => {
@@ -44,7 +45,8 @@ const FSNListPage = () => {
     status: '',
     dateFrom: '',
     dateTo: '',
-    organization: ''
+    organization: '',
+    flagStatus: '' // Added flag status filter
   });
 
   const fetchFSNRecords = useCallback(async () => {
@@ -57,20 +59,21 @@ const FSNListPage = () => {
         ...(filters.status && { status: filters.status }),
         ...(filters.dateFrom && { dateFrom: filters.dateFrom }),
         ...(filters.dateTo && { dateTo: filters.dateTo }),
-        ...(filters.organization && { organization: filters.organization })
+        ...(filters.organization && { organization: filters.organization }),
+        ...(filters.flagStatus && { flagStatus: filters.flagStatus })
       });
 
-      const response = await fetch(`/api/fsn/list?${params}`);
+      const response = await fetch(`/api/fsn/technical/list?${params}`);
       const result = await response.json();
 
       if (result.success) {
-        // Additional client-side filtering to ensure no flagged records are shown
-        const filteredRecords = result.data.filter((record: FSNRecord) => 
-          record.fsn_flag_status !== 1 && record.fsn_flag_status !== 2
+        // Show only records with flag status 1 or 2
+        const flaggedRecords = result.data.filter((record: FSNRecord) => 
+          record.fsn_flag_status === 1 || record.fsn_flag_status === 2
         );
-        setFsnRecords(filteredRecords);
-        setTotalRecords(result.pagination.total);
-        setTotalPages(result.pagination.totalPages);
+        setFsnRecords(flaggedRecords);
+        setTotalRecords(flaggedRecords.length);
+        setTotalPages(Math.ceil(flaggedRecords.length / recordsPerPage));
       } else {
         console.error('Error:', result.error);
       }
@@ -98,7 +101,8 @@ const FSNListPage = () => {
       status: '',
       dateFrom: '',
       dateTo: '',
-      organization: ''
+      organization: '',
+      flagStatus: ''
     });
     setSearchTerm('');
   };
@@ -126,7 +130,7 @@ const FSNListPage = () => {
     if (!confirm(`Delete ${selectedRecords.length} record(s)?`)) return;
 
     try {
-      const response = await fetch('/api/fsn/list', {
+      const response = await fetch('/api/fsn/technical/list', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ids: selectedRecords })
@@ -146,12 +150,11 @@ const FSNListPage = () => {
     }
   };
 
-  // Fixed individual record deletion
   const handleDeleteRecord = async (recordId: number) => {
     if (!confirm('Delete this record?')) return;
 
     try {
-      const response = await fetch('/api/fsn/list', {
+      const response = await fetch('/api/fsn/technical/list', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ids: [recordId] })
@@ -185,6 +188,26 @@ const FSNListPage = () => {
     );
   };
 
+  const getFlagStatusBadge = (flagStatus: number | null) => {
+    if (flagStatus === 1) {
+      return (
+        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+          <Flag className="w-3 h-3 mr-1" />
+          Flag 1
+        </span>
+      );
+    }
+    if (flagStatus === 2) {
+      return (
+        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+          <Flag className="w-3 h-3 mr-1" />
+          Flag 2
+        </span>
+      );
+    }
+    return null;
+  };
+
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -211,13 +234,13 @@ const FSNListPage = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">FSN Records</h1>
         <div className="flex gap-2">
-          <button
+          {/* <button
             onClick={() => window.location.href = '/fsn/add'}
             className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
             New FSN
-          </button>
+          </button> */}
           <button className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center gap-2">
             <Download className="w-4 h-4" />
             Export
@@ -248,7 +271,7 @@ const FSNListPage = () => {
         </div>
 
         {showFilters && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-4 border-t">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 pt-4 border-t">
             <select
               value={filters.status}
               onChange={(e) => handleFilterChange('status', e.target.value)}
@@ -259,6 +282,16 @@ const FSNListPage = () => {
               <option value="submitted">Submitted</option>
               <option value="approved">Approved</option>
               <option value="rejected">Rejected</option>
+            </select>
+            <select
+              value={filters.flagStatus}
+              onChange={(e) => handleFilterChange('flagStatus', e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="">All Flag Status</option>
+              <option value="0">No Flag</option>
+              <option value="1">Flag 1</option>
+              <option value="2">Flag 2</option>
             </select>
             <input
               type="date"
@@ -334,13 +367,14 @@ const FSNListPage = () => {
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Organization</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dates</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Flag Status</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Products</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {fsnRecords.map((record) => (
-                <tr key={record.fsn_id} className="hover:bg-gray-50">
+                <tr key={record.fsn_id} className={`hover:bg-gray-50 ${record.fsn_flag_status === 1 || record.fsn_flag_status === 2 ? 'bg-yellow-50' : ''}`}>
                   <td className="px-4 py-4">
                     <input
                       type="checkbox"
@@ -377,6 +411,9 @@ const FSNListPage = () => {
                     </div>
                   </td>
                   <td className="px-4 py-4">{getStatusBadge(record.status)}</td>
+                  <td className="px-4 py-4">
+                    {getFlagStatusBadge(record.fsn_flag_status)}
+                  </td>
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-1 text-sm text-gray-900">
                       <Package className="w-4 h-4 text-gray-400" />

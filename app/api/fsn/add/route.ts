@@ -16,7 +16,8 @@ export async function POST(req: NextRequest) {
       fsn_target_date,
       fsn_required_delivery_schedules,
       fsn_test_procedures,
-      products
+      products,
+      send_to_technical = false // New field to determine if sending to technical
     } = body;
 
     // Validate required fields
@@ -46,6 +47,10 @@ export async function POST(req: NextRequest) {
     try {
       await connection.beginTransaction();
 
+      // Determine status and flag_status based on send_to_technical
+      const fsn_status = send_to_technical ? 'submitted' : 'draft';
+      const fsn_flag_status = send_to_technical ? 1 : 0; // 0 = Marketing, 1 = R&D
+
       // 1. Insert into FSN main table using correct field names from schema
       const [fsnResult] = await connection.execute<ResultSetHeader>(
         `INSERT INTO crm_fsn (
@@ -58,10 +63,12 @@ export async function POST(req: NextRequest) {
           fsn_target_date,
           fsn_required_delivery_schedules,
           fsn_test_procedures,
+          fsn_status,
+          fsn_flag_status,
           fsn_created_on,
           fsn_modified_on,
           fsn_created_by
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NULL, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NULL, ?)`,
         [
           enquiry_number,
           fsn_enquiry_date || null,
@@ -72,6 +79,8 @@ export async function POST(req: NextRequest) {
           fsn_target_date || null,
           fsn_required_delivery_schedules || null,
           fsn_test_procedures || null,
+          fsn_status,
+          fsn_flag_status,
           1 // TODO: Replace with actual logged-in user ID
         ]
       );
@@ -87,15 +96,17 @@ export async function POST(req: NextRequest) {
             fsn_product_qty,
             fsn_product_feasibility,
             fsn_product_bom_cost,
-            fsn_product_comments
-          ) VALUES (?, ?, ?, ?, ?, ?)`,
+            fsn_product_comments,
+            fsn_product_flag_status
+          ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
           [
             fsnId,
             product.crmtf_product_id || null,
             product.fsn_product_qty || 0,
-            product.feasibility || null,
-            product.bom_cost || null,
+            product.feasibility || 'feasible',
+            product.bom_cost || 0,
             product.fsn_comments || null,
+            fsn_flag_status // Same flag status as main FSN
           ]
         );
 
@@ -111,8 +122,9 @@ export async function POST(req: NextRequest) {
                 fsn_attachment_file_name,
                 fsn_attachment_file_size,
                 fsn_attachment_file_type,
-                fsn_attachment_file_url
-              ) VALUES (?, ?, ?, ?, ?, ?)`,
+                fsn_attachment_file_url,
+                fsn_attachment_uploaded_by
+              ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
               [
                 fsnId,
                 fsnProductId,
@@ -120,6 +132,7 @@ export async function POST(req: NextRequest) {
                 attachment.size || null,
                 attachment.type || null,
                 attachment.url || null,
+                1 // TODO: Replace with actual logged-in user ID
               ]
             );
           }
@@ -129,8 +142,12 @@ export async function POST(req: NextRequest) {
       await connection.commit();
       
       return NextResponse.json({ 
-        message: 'FSN created successfully', 
-        fsnId: fsnId 
+        message: send_to_technical 
+          ? 'FSN submitted to technical department successfully' 
+          : 'FSN saved as draft successfully',
+        fsnId: fsnId,
+        status: fsn_status,
+        flag_status: fsn_flag_status
       });
       
     } catch (error) {

@@ -1,3 +1,4 @@
+//app/enquiry/add/page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -83,7 +84,8 @@ const ProductModal = ({
 
   const handleProductSelect = (productId: string) => {
     setSelectedProductId(productId);
-    const product = products.find(p => p.product_id.toString() === productId); // was crmtf_product_id
+    // FIX: Convert productId to number before comparison
+    const product = products.find(p => p.product_id === parseInt(productId, 10));
     setSelectedProduct(product || null);
   };
 
@@ -144,11 +146,13 @@ const ProductModal = ({
               required
             >
               <option value="">-- Select Product --</option>
-              {products.map((product) => (
-                <option key={product.product_id} value={product.product_id}> 
-                  {product.product_name}  
-                </option>
-              ))}
+              {products
+                .filter(product => product && product.product_id != null) // Filter out invalid products
+                .map((product) => (
+                  <option key={product.product_id} value={product.product_id.toString()}> 
+                    {product.product_name || 'Unnamed Product'}  
+                  </option>
+                ))}
             </select>
           </div>
 
@@ -336,7 +340,7 @@ const LeadForm = () => {
 
   const handleProductChange = (
     index: number,
-    field: 'enquiry_product_quantity' | 'enquiry_product_price', // was 'crm_quantity' | 'crm_price'
+    field: 'enquiry_product_quantity' | 'enquiry_product_price',
     value: number
   ) => {
     const updatedProducts = [...enquiryProducts];
