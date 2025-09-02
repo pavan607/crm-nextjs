@@ -234,13 +234,13 @@ const FSNListPage = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">FSN Records</h1>
         <div className="flex gap-2">
-          {/* <button
-            onClick={() => window.location.href = '/fsn/add'}
+          <button
+            onClick={() => window.location.href = '/fsn/technical/add'}
             className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
             New FSN
-          </button> */}
+          </button>
           <button className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center gap-2">
             <Download className="w-4 h-4" />
             Export
@@ -430,7 +430,7 @@ const FSNListPage = () => {
                         <Eye className="w-4 h-4" />
                       </button>
                       <button 
-                        onClick={() => window.location.href = `/fsn/edit/${record.fsn_id}`}
+                        onClick={() => window.location.href = `/fsn/technical/edit/${record.fsn_id}`}
                         className="text-green-600 hover:text-green-800 p-1 hover:bg-green-50 rounded"
                         title="Edit FSN"
                       >
