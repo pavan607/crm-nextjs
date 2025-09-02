@@ -132,6 +132,7 @@ const FSNEditPage = ({ fsnId }: { fsnId?: string }) => {
     try {
       // Fetch FSN main data
       const fsnResponse = await fetch(`/api/fsn/technical/edit/${fsnId}`);
+        console.log('Fetching FSN data for ID:', fsnId); // Debug log
       if (!fsnResponse.ok) {
         throw new Error(`Failed to fetch FSN: ${fsnResponse.status}`);
       }
@@ -162,9 +163,10 @@ const FSNEditPage = ({ fsnId }: { fsnId?: string }) => {
         fsn_status: fsnResult.fsn_status || 'draft',
         fsn_flag_status: fsnResult.fsn_flag_status || 0,
       });
-
+      console.log('Fetched FSN data:', fsnResult); // Debug log
       // Fetch FSN products
       const productsResponse = await fetch(`/api/fsn/technical/edit/${fsnId}/products`);
+      console.log('Fetching products for FSN ID:', fsnId); // Debug log
       if (!productsResponse.ok) {
         throw new Error(`Failed to fetch products: ${productsResponse.status}`);
       }
