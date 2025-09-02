@@ -520,21 +520,22 @@ const FSNPage = () => {
               Enquiry Number *
             </label>
             <select
-              value={fsnData.enquiry_number}
-              onChange={(e) => handleEnquiryChange(e.target.value)}
-              disabled={loading}
-              className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed text-sm"
-            >
-              <option value="">Select Enquiry</option>
-              {enquiries.map((enquiry) => (
-                <option
-                  key={enquiry.crm_enquiry_id}
-                  value={enquiry.crm_enquiry_id.toString()}
-                >
-                  {enquiry.crm_enquiry_number}
-                </option>
-              ))}
-            </select>
+  value={fsnData.enquiry_number}
+  onChange={(e) => handleEnquiryChange(e.target.value)}
+  disabled={loading}
+  className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed text-sm"
+>
+  <option value="">Select Enquiry</option>
+  {enquiries.map((enquiry) => (
+    <option
+      key={enquiry.crm_enquiry_id}
+      value={enquiry.crm_enquiry_id.toString()}
+    >
+      {enquiry.crm_enquiry_number}
+    </option>
+  ))}
+</select>
+
           </div>
 
           <div>
@@ -727,139 +728,150 @@ const FSNPage = () => {
         </div>
       )}
 
-      {isEditModalOpen && editingProduct && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-3 w-full max-w-md m-4 max-h-[85vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-2">
-              <h2 className="text-base font-semibold">Add FSN Details</h2>
-              <button
-                onClick={() => setIsEditModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+{isEditModalOpen && editingProduct && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="bg-white rounded-lg p-3 w-full max-w-md m-4 max-h-[85vh] overflow-y-auto">
+      <div className="flex justify-between items-center mb-2">
+        <h2 className="text-base font-semibold">Add FSN Details</h2>
+        <button
+          onClick={() => setIsEditModalOpen(false)}
+          className="text-gray-400 hover:text-gray-600"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
 
-            <div className="space-y-2 text-sm">
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block font-medium mb-1">Product Name</label>
-                  <input
-                    type="text"
-                    value={editingProduct?.product_name || ''}
-                    readOnly
-                    className="w-full px-2 py-1 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed"
-                  />
-                </div>
+      <div className="space-y-2 text-sm">
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="block font-medium mb-1">Product Name</label>
+            <input
+              type="text"
+              value={editingProduct?.product_name || ''}
+              readOnly
+              className="w-full px-2 py-1 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed"
+            />
+          </div>
 
-                <div>
-                  <label className="block font-medium mb-1">Product Quantity</label>
-                  <input
-                    type="number"
-                    value={editingProduct.fsn_product_qty}
-                    readOnly
-                    className="w-full px-2 py-1 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block font-medium mb-1">Department</label>
-                <select
-                  value={editingProduct?.department_id ?? ''}
-                  onChange={e => handleDepartmentChange(Number(e.target.value))}
-                  className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-                >
-                  <option value="">Select Department</option>
-                  {departments.map(dept => (
-                    <option key={dept.department_id} value={dept.department_id}>
-                      {dept.department_name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block font-medium mb-1">Employee</label>
-                <select
-                  value={editingProduct?.employee_id ?? ''}
-                  onChange={e => handleEmployeeChange(Number(e.target.value))}
-                  disabled={!editingProduct?.department_id}
-                  className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                >
-                  <option value="">Select Employee</option>
-                  {employees.map(emp => (
-                    <option key={emp.employee_id} value={emp.employee_id}>
-                      {emp.employee_first_name} {emp.employee_last_name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block font-medium mb-1">Marketing Comments</label>
-                <textarea
-                  value={editingProduct.fsn_comments}
-                  onChange={(e) =>
-                    setEditingProduct((prev) =>
-                      prev ? { ...prev, fsn_comments: e.target.value } : null
-                    )
-                  }
-                  rows={3}
-                  className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block font-medium mb-1">Attachments</label>
-                <div className="space-y-1">
-                  <input
-                    type="file"
-                    multiple
-                    onChange={(e) => handleAttachmentUpload(e.target.files)}
-                    className="w-full px-2 py-1 border border-gray-300 rounded-md cursor-pointer"
-                  />
-                  {editingProduct.attachments?.length > 0 && (
-                    <div className="space-y-1">
-                      {editingProduct.attachments.map((file, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between bg-gray-50 p-1 rounded"
-                        >
-                          <span className="text-xs">{file.name}</span>
-                          <button
-                            onClick={() => removeAttachment(index)}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex justify-center gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={handleSaveProductEdit}
-                  className="bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700 transition text-sm font-medium"
-                >
-                  Save
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsEditModalOpen(false)}
-                  className="bg-red-500 text-white px-4 py-1 rounded hover:bg-red-600 transition text-sm font-medium"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
+          <div>
+            <label className="block font-medium mb-1">Product Quantity</label>
+            <input
+              type="number"
+              value={editingProduct.fsn_product_qty}
+              readOnly
+              className="w-full px-2 py-1 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed"
+            />
           </div>
         </div>
-      )}
+
+        <div>
+          <label className="block font-medium mb-1">
+            Department <span className="text-red-500">*</span>
+          </label>
+          <select
+            value={editingProduct?.department_id ?? ''}
+            onChange={e => handleDepartmentChange(Number(e.target.value))}
+            className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+          >
+            <option value="">Select Department</option>
+            {departments.map(dept => (
+              <option key={dept.department_id} value={dept.department_id}>
+                {dept.department_name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block font-medium mb-1">
+            Employee <span className="text-red-500">*</span>
+          </label>
+          <select
+            value={editingProduct?.employee_id ?? ''}
+            onChange={e => handleEmployeeChange(Number(e.target.value))}
+            disabled={!editingProduct?.department_id}
+            className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+          >
+            <option value="">Select Employee</option>
+            {employees.map(emp => (
+              <option key={emp.employee_id} value={emp.employee_id}>
+                {emp.employee_first_name} {emp.employee_last_name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block font-medium mb-1">
+            Marketing Comments <span className="text-red-500">*</span>
+          </label>
+          <textarea
+            value={editingProduct.fsn_comments}
+            onChange={(e) =>
+              setEditingProduct((prev) =>
+                prev ? { ...prev, fsn_comments: e.target.value } : null
+              )
+            }
+            rows={3}
+            className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+        </div>
+
+        <div>
+          <label className="block font-medium mb-1">Attachments</label>
+          <div className="space-y-1">
+            <input
+              type="file"
+              multiple
+              onChange={(e) => handleAttachmentUpload(e.target.files)}
+              className="w-full px-2 py-1 border border-gray-300 rounded-md cursor-pointer"
+            />
+            {editingProduct.attachments?.length > 0 && (
+              <div className="space-y-1">
+                {editingProduct.attachments.map((file, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between bg-gray-50 p-1 rounded"
+                  >
+                    <span className="text-xs">{file.name}</span>
+                    <button
+                      onClick={() => removeAttachment(index)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex justify-center gap-2 pt-2">
+          <button
+            type="button"
+            onClick={handleSaveProductEdit}
+            disabled={!editingProduct?.department_id || !editingProduct?.employee_id || !editingProduct?.fsn_comments?.trim()}
+            className={`px-4 py-1 rounded transition text-sm font-medium ${
+              !editingProduct?.department_id || !editingProduct?.employee_id || !editingProduct?.fsn_comments?.trim()
+                ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                : 'bg-blue-600 text-white hover:bg-blue-700'
+            }`}
+          >
+            Save
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsEditModalOpen(false)}
+            className="bg-red-500 text-white px-4 py-1 rounded hover:bg-red-600 transition text-sm font-medium"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 };
