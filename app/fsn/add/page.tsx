@@ -408,6 +408,14 @@ const FSNPage = () => {
     }) : null);
   };
 
+  const areAllProductsComplete = () => {
+    return products.length > 0 && products.every(product => 
+      product.department_id && 
+      product.employee_id && 
+      product.fsn_comments?.trim()
+    );
+  };
+
   // Show confirmation dialog when Save FSN is clicked
   const handleSaveFSNClick = () => {
     // Validate required fields first
@@ -423,6 +431,11 @@ const FSNPage = () => {
 
     if (products.length === 0) {
       alert('Please add at least one product');
+      return;
+    }
+
+    if (!areAllProductsComplete()) {
+      alert('Please assign department and employee to all products and add comments');
       return;
     }
 
@@ -670,8 +683,12 @@ const FSNPage = () => {
           <button
             type="button"
             onClick={handleSaveFSNClick}
-            disabled={loading || !fsnData.enquiry_number}
-            className="bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700 transition text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={loading || !fsnData.enquiry_number || !areAllProductsComplete()}
+            className={`px-4 py-1 rounded transition text-sm font-medium ${
+              loading || !fsnData.enquiry_number || !areAllProductsComplete()
+                ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                : 'bg-blue-600 text-white hover:bg-blue-700'
+            }`}
           >
             {loading ? 'Saving...' : 'Save FSN'}
           </button>
