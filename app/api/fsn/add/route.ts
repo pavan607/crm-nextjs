@@ -103,8 +103,8 @@ export async function POST(req: NextRequest) {
             fsnId,
             product.crmtf_product_id || null,
             product.fsn_product_qty || 0,
-            product.feasibility || 'feasible',
-            product.bom_cost || 0,
+            product.feasibility || null, // Changed from 'feasible' to null
+            product.bom_cost || null,
             product.fsn_comments || null,
             fsn_flag_status // Same flag status as main FSN
           ]

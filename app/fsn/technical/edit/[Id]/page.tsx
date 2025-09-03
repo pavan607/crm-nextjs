@@ -1,7 +1,7 @@
-//app/fsn/technical/edit/[Id]/page.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
 import { Edit, X } from 'lucide-react';
 import { PencilIcon, TrashIcon } from '@heroicons/react/24/solid';
 
@@ -27,8 +27,9 @@ interface Product {
   fsn_product_bom_cost: number;
   fsn_product_comments: string;
   attachments: FileAttachment[];
-  department_id?: number;
-  employee_id?: number;
+  // Removed department_id and employee_id fields
+  // Add fields for tracking changes
+  hasChanges?: boolean;
 }
 
 interface FileAttachment {
@@ -53,7 +54,10 @@ interface FSNData {
   fsn_flag_status: number;
 }
 
-const FSNEditPage = ({ fsnId }: { fsnId?: string }) => {
+const FSNEditPage = () => {
+  const params = useParams();
+  const fsnId = params.Id as string;
+  console.log('FSNEditPage rendered with fsnId:', fsnId);
   const [mounted, setMounted] = useState(false);
   const [fsnData, setFsnData] = useState<FSNData>({
     fsn_id: 0,
@@ -71,11 +75,10 @@ const FSNEditPage = ({ fsnId }: { fsnId?: string }) => {
   });
 
   const [products, setProducts] = useState<Product[]>([]);
+  const [originalProducts, setOriginalProducts] = useState<Product[]>([]); // Store original data
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [departments, setDepartments] = useState<{ department_id: number; department_name: string }[]>([]);
-  const [employees, setEmployees] = useState<{ employee_id: number; employee_first_name: string; employee_last_name: string }[]>([]);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   const feasibilityOptions = [
@@ -92,117 +95,78 @@ const FSNEditPage = ({ fsnId }: { fsnId?: string }) => {
   useEffect(() => {
     if (!mounted || !fsnId) return;
     fetchFSNData();
-    fetchDepartments();
   }, [mounted, fsnId]);
 
-  // Fetch employees when department changes
-  useEffect(() => {
-    if (!mounted) return;
-    
-    const deptId = editingProduct?.department_id;
-    if (!deptId) {
-      setEmployees([]);
-      return;
-    }
-    
-    async function fetchEmployees() {
-      try {
-        const res = await fetch(`/api/fsn/employee_dropdown/?departmentId=${deptId}`);
-        if (!res.ok) {
-          throw new Error(`HTTP error! status: ${res.status}`);
-        }
-        const data = await res.json();
-        if (data.error) {
-          throw new Error(data.error);
-        }
-        setEmployees(Array.isArray(data) ? data : []);
-      } catch (error) {
-        console.error('Failed to fetch employees', error);
-        setEmployees([]);
-      }
-    }
-    
-    fetchEmployees();
-  }, [editingProduct?.department_id, mounted]);
-
   const fetchFSNData = async () => {
-    if (!fsnId) return;
+  if (!fsnId) return;
+  
+  setLoading(true);
+  try {
+    // Fetch FSN main data
+    const fsnResponse = await fetch(`/api/fsn/technical/edit/${fsnId}`);
+    console.log('Fetching FSN data for ID:', fsnId);
+    if (!fsnResponse.ok) {
+      throw new Error(`Failed to fetch FSN: ${fsnResponse.status}`);
+    }
     
-    setLoading(true);
-    try {
-      // Fetch FSN main data
-      const fsnResponse = await fetch(`/api/fsn/technical/edit/${fsnId}`);
-        console.log('Fetching FSN data for ID:', fsnId); // Debug log
-      if (!fsnResponse.ok) {
-        throw new Error(`Failed to fetch FSN: ${fsnResponse.status}`);
+    const fsnResult = await fsnResponse.json();
+    
+    // Format dates for input fields
+    const formatDateForInput = (dateString: string) => {
+      if (!dateString) return '';
+      try {
+        return new Date(dateString).toISOString().split('T')[0];
+      } catch {
+        return '';
       }
-      
-      const fsnResult = await fsnResponse.json();
-      
-      // Format dates for input fields
-      const formatDateForInput = (dateString: string) => {
-        if (!dateString) return '';
-        try {
-          return new Date(dateString).toISOString().split('T')[0];
-        } catch {
-          return '';
-        }
-      };
-      
-      setFsnData({
-        fsn_id: fsnResult.fsn_id,
-        enquiry_number: fsnResult.enquiry_id?.toString() || '',
-        fsn_enquiry_date: formatDateForInput(fsnResult.enquiry_date),
-        fsn_num: fsnResult.fsn_num || '',
-        fsn_date: formatDateForInput(fsnResult.fsn_date),
-        fsn_organization_name: fsnResult.fsn_organization_name || '',
-        fsn_contact_name: fsnResult.fsn_contact_name || '',
-        fsn_target_date: formatDateForInput(fsnResult.fsn_target_date),
-        fsn_required_delivery_schedules: fsnResult.fsn_required_delivery_schedules || '',
-        fsn_test_procedures: fsnResult.fsn_test_procedures || '',
-        fsn_status: fsnResult.fsn_status || 'draft',
-        fsn_flag_status: fsnResult.fsn_flag_status || 0,
-      });
-      console.log('Fetched FSN data:', fsnResult); // Debug log
-      // Fetch FSN products
-      const productsResponse = await fetch(`/api/fsn/technical/edit/${fsnId}/products`);
-      console.log('Fetching products for FSN ID:', fsnId); // Debug log
-      if (!productsResponse.ok) {
-        throw new Error(`Failed to fetch products: ${productsResponse.status}`);
-      }
-      
-      const productsData = await productsResponse.json();
-      setProducts(Array.isArray(productsData) ? productsData : []);
-      
-    } catch (error) {
-      console.error('Error fetching FSN data:', error);
-      alert('Failed to load FSN data. Please try again.');
-    } finally {
-      setLoading(false);
+    };
+    
+    setFsnData({
+      fsn_id: fsnResult.fsn_id,
+      enquiry_number: fsnResult.enquiry_id?.toString() || '',
+      fsn_enquiry_date: formatDateForInput(fsnResult.enquiry_date),
+      fsn_num: fsnResult.fsn_num || '',
+      fsn_date: formatDateForInput(fsnResult.fsn_date),
+      fsn_organization_name: fsnResult.fsn_organization_name || '',
+      fsn_contact_name: fsnResult.fsn_contact_name || '',
+      fsn_target_date: formatDateForInput(fsnResult.fsn_target_date),
+      fsn_required_delivery_schedules: fsnResult.fsn_required_delivery_schedules || '',
+      fsn_test_procedures: fsnResult.fsn_test_procedures || '',
+      fsn_status: fsnResult.fsn_status || 'draft',
+      fsn_flag_status: fsnResult.fsn_flag_status || 0,
+    });
+    console.log('Fetched FSN data:', fsnResult);
+    
+    // Fetch FSN products
+    const productsResponse = await fetch(`/api/fsn/technical/edit/${fsnResult.fsn_id}/products`);
+    console.log('Fetching products for FSN ID:', fsnResult.fsn_id);
+    if (!productsResponse.ok) {
+      throw new Error(`Failed to fetch products: ${productsResponse.status}`);
     }
-  };
-
-  const fetchDepartments = async () => {
-    try {
-      const res = await fetch('/api/fsn/department_dropdown');
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
-      const data = await res.json();
-      setDepartments(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error('Failed to fetch departments', error);
-      setDepartments([]);
-    }
-  };
-
-  const handleDepartmentChange = (deptId: number) => {
-    setEditingProduct(prev => prev ? { ...prev, department_id: deptId, employee_id: undefined } : null);
-  };
-
-  const handleEmployeeChange = (empId: number) => {
-    setEditingProduct(prev => prev ? { ...prev, employee_id: empId } : null);
-  };
+    
+    const productsData = await productsResponse.json();
+    console.log('Fetched products data:', productsData);
+    
+    // Transform products for display - preserve actual database values
+    const displayProducts = Array.isArray(productsData) ? productsData.map((product: any) => ({
+      ...product,
+      // Preserve actual database values, convert null/undefined to appropriate defaults
+      fsn_product_bom_cost: product.fsn_product_bom_cost || 0,
+      fsn_product_feasibility: product.fsn_product_feasibility || '', // Empty string will show "Not Set"
+      fsn_product_comments: product.fsn_product_comments || '', // Preserve actual comments from database
+      hasChanges: false
+    })) : [];
+    
+    setProducts(displayProducts);
+    setOriginalProducts(productsData); // Store original data
+    
+  } catch (error) {
+    console.error('Error fetching FSN data:', error);
+    alert('Failed to load FSN data. Please try again.');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleInputChange = (field: keyof FSNData, value: string) => {
     setFsnData(prev => ({
@@ -216,46 +180,24 @@ const FSNEditPage = ({ fsnId }: { fsnId?: string }) => {
     setIsEditModalOpen(true);
   };
 
+  // Modified to only update local state, not database
   const handleSaveProductEdit = async () => {
     if (!editingProduct) return;
     
     try {
-      setLoading(true);
+      // Update local state only - mark as having changes
+      setProducts(prev => prev.map(p => 
+        p.fsn_product_id === editingProduct.fsn_product_id ? 
+        { ...editingProduct, hasChanges: true } : p
+      ));
       
-      // Update product via API
-      const response = await fetch(`/api/fsn/technical/edit/${fsnData.fsn_id}/products/${editingProduct.fsn_product_id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          fsn_product_qty: editingProduct.fsn_product_qty,
-          fsn_product_feasibility: editingProduct.fsn_product_feasibility,
-          fsn_product_bom_cost: editingProduct.fsn_product_bom_cost,
-          fsn_product_comments: editingProduct.fsn_product_comments,
-          department_id: editingProduct.department_id,
-          employee_id: editingProduct.employee_id,
-          attachments: editingProduct.attachments || []
-        }),
-      });
-
-      if (response.ok) {
-        // Update local state
-        setProducts(prev => prev.map(p => 
-          p.fsn_product_id === editingProduct.fsn_product_id ? editingProduct : p
-        ));
-        setIsEditModalOpen(false);
-        setEditingProduct(null);
-        alert('Product updated successfully!');
-      } else {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to update product');
-      }
+      setIsEditModalOpen(false);
+      setEditingProduct(null);
+      alert('Product changes saved locally. Click "Update FSN" to save to database.');
+      
     } catch (error) {
-      console.error('Error updating product:', error);
-      alert('Failed to update product. Please try again.');
-    } finally {
-      setLoading(false);
+      console.error('Error saving product changes:', error);
+      alert('Failed to save product changes.');
     }
   };
 
@@ -295,6 +237,17 @@ const FSNEditPage = ({ fsnId }: { fsnId?: string }) => {
       return;
     }
 
+    // Check if any products have required fields filled
+    const hasValidProducts = products.some(p => 
+      p.fsn_product_feasibility && 
+      p.fsn_product_comments?.trim()
+    );
+
+    if (!hasValidProducts) {
+      alert('Please complete at least one product with feasibility and comments');
+      return;
+    }
+
     setShowConfirmDialog(true);
   };
 
@@ -303,7 +256,8 @@ const FSNEditPage = ({ fsnId }: { fsnId?: string }) => {
       setLoading(true);
       setShowConfirmDialog(false);
 
-      const payload = {
+      // First update FSN data
+      const fsnPayload = {
         fsn_enquiry_date: fsnData.fsn_enquiry_date,
         fsn_date: fsnData.fsn_date,
         fsn_organization_name: fsnData.fsn_organization_name,
@@ -314,31 +268,61 @@ const FSNEditPage = ({ fsnId }: { fsnId?: string }) => {
         send_to_technical: sendToTechnical,
       };
 
-      const response = await fetch(`/api/fsn/technical/edit/${fsnData.fsn_id}`, {
+      const fsnResponse = await fetch(`/api/fsn/technical/edit/${fsnData.fsn_id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(fsnPayload),
       });
 
-      if (response.ok) {
-        const message = sendToTechnical 
-          ? 'FSN submitted to technical department successfully!'
-          : 'FSN updated successfully!';
-        
-        alert(message);
-        
-        if (typeof window !== 'undefined') {
-          window.location.href = '/fsn/list';
-        }
-      } else {
-        const error = await response.json();
+      if (!fsnResponse.ok) {
+        const error = await fsnResponse.json();
         throw new Error(error.error || 'Failed to update FSN');
       }
+
+      // Update all products that have changes
+      const productUpdatePromises = products
+        .filter(product => product.hasChanges)
+        .map(async (product) => {
+          const response = await fetch(`/api/fsn/technical/edit/${fsnData.fsn_id}/products/${product.fsn_product_id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              fsn_product_qty: product.fsn_product_qty,
+              fsn_product_feasibility: product.fsn_product_feasibility,
+              fsn_product_bom_cost: product.fsn_product_bom_cost,
+              fsn_product_comments: product.fsn_product_comments,
+              attachments: product.attachments || []
+            }),
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(`Failed to update product ${product.product_name}: ${error.error}`);
+          }
+
+          return response.json();
+        });
+
+      // Wait for all product updates to complete
+      await Promise.all(productUpdatePromises);
+
+      const message = sendToTechnical 
+        ? 'FSN and products submitted to technical department successfully!'
+        : 'FSN and products updated successfully!';
+      
+      alert(message);
+      
+      if (typeof window !== 'undefined') {
+        window.location.href = '/fsn/list';
+      }
+
     } catch (error) {
       console.error('FSN update failed:', error);
-      alert('Failed to update FSN');
+      alert(`Failed to update FSN: ${typeof error === 'object' && error !== null && 'message' in error ? (error as any).message : String(error)}`);
     } finally {
       setLoading(false);
     }
@@ -492,8 +476,11 @@ const FSNEditPage = ({ fsnId }: { fsnId?: string }) => {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {products.map((product) => (
-                    <tr key={product.fsn_product_id}>
-                      <td className="px-2 py-1 whitespace-nowrap font-medium text-gray-900">{product.product_name}</td>
+                    <tr key={product.fsn_product_id} className={product.hasChanges ? 'bg-yellow-50' : ''}>
+                      <td className="px-2 py-1 whitespace-nowrap font-medium text-gray-900">
+                        {product.product_name}
+                        {product.hasChanges && <span className="ml-1 text-xs text-orange-600">●</span>}
+                      </td>
                       <td className="px-2 py-1 whitespace-nowrap text-gray-500">{product.product_type}</td>
                       <td className="px-2 py-1 whitespace-nowrap text-gray-500">{product.fsn_product_qty}</td>
                       <td className="px-2 py-1 whitespace-nowrap">
@@ -502,7 +489,7 @@ const FSNEditPage = ({ fsnId }: { fsnId?: string }) => {
                         </span>
                       </td>
                       <td className="px-2 py-1 whitespace-nowrap text-gray-500">
-                        ₹{product.fsn_product_bom_cost?.toLocaleString() || '0'}
+                        {product.fsn_product_bom_cost > 0 ? `₹${product.fsn_product_bom_cost.toLocaleString()}` : '-'}
                       </td>
                       <td className="px-2 py-1 whitespace-nowrap font-medium">
                         <button
@@ -526,6 +513,13 @@ const FSNEditPage = ({ fsnId }: { fsnId?: string }) => {
               </table>
             </div>
           </div>
+          
+          {products.some(p => p.hasChanges) && (
+            <div className="mt-2 text-xs text-orange-600 flex items-center">
+              <span className="mr-1">●</span>
+              Products with changes (will be saved when FSN is updated)
+            </div>
+          )}
         </div>
 
         <div className="flex justify-center gap-2 pt-6">
@@ -561,6 +555,11 @@ const FSNEditPage = ({ fsnId }: { fsnId?: string }) => {
               </h3>
               <p className="text-sm text-gray-600 mb-6">
                 Choose "Submit to Technical" to send to R&D department or "Save Draft" to keep in Marketing.
+                {products.some(p => p.hasChanges) && (
+                  <span className="block mt-2 text-orange-600">
+                    Product changes will also be saved to database.
+                  </span>
+                )}
               </p>
               <div className="flex justify-center gap-4">
                 <button
@@ -676,43 +675,6 @@ const FSNEditPage = ({ fsnId }: { fsnId?: string }) => {
 
               <div>
                 <label className="block font-medium mb-1">
-                  Department <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={editingProduct?.department_id ?? ''}
-                  onChange={e => handleDepartmentChange(Number(e.target.value))}
-                  className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-                >
-                  <option value="">Select Department</option>
-                  {departments.map(dept => (
-                    <option key={dept.department_id} value={dept.department_id}>
-                      {dept.department_name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block font-medium mb-1">
-                  Employee <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={editingProduct?.employee_id ?? ''}
-                  onChange={e => handleEmployeeChange(Number(e.target.value))}
-                  disabled={!editingProduct?.department_id}
-                  className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                >
-                  <option value="">Select Employee</option>
-                  {employees.map(emp => (
-                    <option key={emp.employee_id} value={emp.employee_id}>
-                      {emp.employee_first_name} {emp.employee_last_name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block font-medium mb-1">
                   Comments <span className="text-red-500">*</span>
                 </label>
                 <textarea
@@ -762,14 +724,10 @@ const FSNEditPage = ({ fsnId }: { fsnId?: string }) => {
                   type="button"
                   onClick={handleSaveProductEdit}
                   disabled={
-                    !editingProduct?.department_id || 
-                    !editingProduct?.employee_id || 
                     !editingProduct?.fsn_product_comments?.trim() ||
                     !editingProduct?.fsn_product_feasibility
                   }
                   className={`px-6 py-2 rounded transition text-sm font-medium ${
-                    !editingProduct?.department_id || 
-                    !editingProduct?.employee_id || 
                     !editingProduct?.fsn_product_comments?.trim() ||
                     !editingProduct?.fsn_product_feasibility
                       ? 'bg-gray-400 text-gray-200 cursor-not-allowed'

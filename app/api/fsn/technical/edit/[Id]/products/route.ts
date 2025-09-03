@@ -1,68 +1,50 @@
-// app/api/fsn/technical/edit/[id]/products/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-import db from '../../../../../../lib/db';
-import { RowDataPacket } from 'mysql2';
+//app/api/fsn/technical/edit/[id]/products/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import db from "../../../../../../lib/db";
 
-// GET - Fetch products for an FSN
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> } // ✅ Mark params as Promise
 ) {
   try {
-    const fsnId = params.id;
+    const { id } = await context.params; // ✅ Await params
+    const fsnId = Number(id);
     
-    console.log('API: Fetching products for FSN ID:', fsnId); // Debug log
-
-    if (!fsnId || isNaN(Number(fsnId))) {
-      return NextResponse.json(
-        { error: 'Invalid FSN ID provided' },
-        { status: 400 }
-      );
+    if (!fsnId) {
+      return NextResponse.json({ error: "Invalid FSN ID" }, { status: 400 });
     }
 
     const connection = await db.getConnection();
-
     try {
-      // Fetch products associated with this FSN
-      const [productRows] = await connection.execute<RowDataPacket[]>(
+      // Fetch products for this FSN with product details
+      const [productRows] = await connection.execute(
         `SELECT 
-          fp.fsn_product_id,
-          fp.crmtf_product_id,
-          fp.fsn_product_qty,
-          fp.fsn_product_feasibility,
-          fp.fsn_product_bom_cost,
-          fp.fsn_product_comments,
-          fp.department_id,
-          fp.employee_id,
+          fp.*,
           p.product_name,
           p.product_type,
-          p.product_model_num,
+          p.product_model_number,
           p.product_uom
-        FROM crm_fsn_products fp
-        LEFT JOIN crmtf_products p ON fp.crmtf_product_id = p.crmtf_product_id
-        WHERE fp.fsn_id = ?
-        ORDER BY fp.fsn_product_id`,
+         FROM crm_fsn_product fp
+         INNER JOIN crm_product p ON fp.product_id = p.product_id
+         WHERE fp.fsn_id = ?
+         ORDER BY fp.fsn_product_id`,
         [fsnId]
       );
-
-      console.log('API: Found products:', productRows.length); // Debug log
-
-      // Add empty attachments array to each product (you may want to fetch actual attachments from another table)
-      const productsWithAttachments = productRows.map(product => ({
-        ...product,
-        attachments: [] // Add actual attachment fetching logic here if needed
-      }));
-
-      return NextResponse.json(productsWithAttachments);
+      console.log('Fetched products:', productRows);
       
+      const products = Array.isArray(productRows) ? productRows.map((product: any) => ({
+        ...product,
+        attachments: [] // You can fetch attachments separately if needed
+      })) : [];
+
+      return NextResponse.json(products);
     } finally {
       connection.release();
     }
   } catch (error) {
-    console.error('Error fetching products:', error);
-    const errorMessage = (error instanceof Error) ? error.message : String(error);
+    console.error("❌ Error fetching FSN products:", error);
     return NextResponse.json(
-      { error: 'Failed to fetch products', details: errorMessage },
+      { error: "Failed to fetch FSN products" },
       { status: 500 }
     );
   }

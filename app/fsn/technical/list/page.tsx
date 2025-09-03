@@ -20,6 +20,7 @@ interface FSNRecord {
   status: 'draft' | 'submitted' | 'approved' | 'rejected';
   fsn_flag_status: number | null;
   products_count: number;
+  product_names: string | null; // ✅ Added
 }
 
 interface FilterOptions {
@@ -415,11 +416,13 @@ const FSNListPage = () => {
                     {getFlagStatusBadge(record.fsn_flag_status)}
                   </td>
                   <td className="px-4 py-4">
-                    <div className="flex items-center gap-1 text-sm text-gray-900">
-                      <Package className="w-4 h-4 text-gray-400" />
-                      {record.products_count} items
-                    </div>
-                  </td>
+  <div className="text-sm text-gray-900">
+    {record.product_names ? record.product_names : "No Products"}
+  </div>
+  <div className="text-xs text-gray-500">
+    ({record.products_count} items)
+  </div>
+</td>
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-2">
                       <button 
